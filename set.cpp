@@ -35,7 +35,6 @@ class RBTree{
         RBNode* root;
         RBTree() : root(nullptr) {}
         
-        // Итератор для обхода дерева
         class Iterator {
         private:
             RBNode* current;
@@ -108,11 +107,11 @@ public:
     // Базовые операции множества
     void add(const string& value) {
         if (contains(value)) return;
-        ::addRBNode(&tree, value);
+        addRBNode(&tree, value);
     }
     
     void remove(const string& value) {
-        ::delRBNode(&tree, value);
+        delRBNode(&tree, value);
     }
     
     bool contains(const string& value) const {
@@ -136,7 +135,10 @@ public:
     
     // Операции множества
     StringSet unionWith(const StringSet& other) const {
-        StringSet result = *this;
+        StringSet result;
+        for (const auto& elem : *this){
+            result.add(elem);
+        }
         for (const auto& elem : other) {
             result.add(elem);
         }
@@ -180,9 +182,9 @@ public:
     RBTree::Iterator begin() const { return tree.begin(); }
     RBTree::Iterator end() const { return tree.end(); }
     
-    // Вывод
-    void print() const {
-        ::print(&tree);
+    void print() {
+        for (RBTree::Iterator i = (tree).begin(); i != (tree).end(); i++) cout << *i << " ";
+        cout << endl;
     }
     
     // Вектор элементов
@@ -757,9 +759,7 @@ int main(int argc, char* argv[]) {
         StringSet* set = database.getSet(setName);
         if (set) {
             cout << "Элементы множества '" << setName << "':" << endl;
-            for (const auto& elem : *set) {
-                cout << elem << endl;
-            }
+            set -> print();
             cout << "Всего элементов: " << set->size() << endl;
         } else {
             cerr << "Множество '" << setName << "' не найдено" << endl;

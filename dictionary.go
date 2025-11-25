@@ -8,14 +8,12 @@ import (
 	"unicode"
 )
 
-// Dictionary - структура словаря
 type Dictionary struct {
 	size int
 	cap  int
 	data []string
 }
 
-// NewDictionary - конструктор словаря (аналог Dictionary())
 func NewDictionary() *Dictionary {
 	return &Dictionary{
 		size: 0,
@@ -24,42 +22,59 @@ func NewDictionary() *Dictionary {
 	}
 }
 
-// addWord - добавление слова в словарь
-func (d *Dictionary) addWord(str string) {
-	if d.size == len(d.data) {
-		// Увеличиваем емкость в 2 раза
-		newData := make([]string, d.cap*2)
+func (d *Dictionary) AddWord(str string) {
+	if d.size == d.cap {
+		newCap := d.cap * 2
+		newData := make([]string, newCap)
 		copy(newData, d.data)
 		d.data = newData
-		d.cap *= 2
+		d.cap = newCap
 	}
 	d.data[d.size] = str
 	d.size++
 }
 
-// errors - подсчет ошибок в строке
-func (d *Dictionary) errors(str string) int {
+func (d *Dictionary) Errors(str string) int {
 	result := 0
 	words := strings.Fields(str)
-	
+
 	for _, word := range words {
-		wordDown := strings.ToLower(word)
-		
-		// Если слово уже в нижнем регистре
-		if word == wordDown {
+		wordLower := strings.ToLower(word)
+
+		// Если слово полностью в нижнем регистре
+		if word == wordLower {
 			result++
 			continue
 		}
 
+		// Проверка на несколько заглавных букв
+		manyUpper := false
+		upperCount := 0
+		for _, ch := range word {
+			if unicode.IsUpper(ch) {
+				upperCount++
+				if upperCount > 1 {
+					manyUpper = true
+					break
+				}
+			}
+		}
+		if manyUpper {
+			result++
+			continue
+		}
+
+		// Проверяем есть ли слово в словаре (без учета регистра)
 		haveWord := false
 		for i := 0; i < d.size; i++ {
-			dataDown := strings.ToLower(d.data[i])
-			if wordDown == dataDown {
+			dictWordLower := strings.ToLower(d.data[i])
+			if wordLower == dictWordLower {
 				haveWord = true
 				break
 			}
 		}
 
+		// Проверяем точное совпадение
 		noError := false
 		for i := 0; i < d.size; i++ {
 			if word == d.data[i] {
@@ -75,67 +90,54 @@ func (d *Dictionary) errors(str string) int {
 	return result
 }
 
-// String - реализация вывода для Dictionary (аналог operator<<)
 func (d *Dictionary) String() string {
-	var result strings.Builder
-	for i := 0; i < d.size; i++ {
-		result.WriteString(d.data[i])
-		result.WriteString(" ")
-	}
-	result.WriteString("\n")
-	return result.String()
-}
-
-// toLowerCase - вспомогательная функция для преобразования строки к нижнему регистру
-// (в Go есть встроенная strings.ToLower, но для полноты перевода)
-func toLowerCase(str string) string {
-	return strings.Map(unicode.ToLower, str)
+	return strings.Join(d.data[:d.size], " ") + "\n"
 }
 
 func dictionary() {
 	fmt.Println("Введите словарь (слова через пробел), затем слово 'stop', затем строку для проверки:")
-	
+
 	dict := NewDictionary()
 	scanner := bufio.NewScanner(os.Stdin)
-	
-	if scanner.Scan() {
-		input := scanner.Text()
-		words := strings.Fields(input)
-		
-		// Флаг для определения, когда заканчивается словарь
-		readingDict := true
-		var textToCheck strings.Builder
-		
-		for _, word := range words {
-			if word == "stop" {
-				readingDict = false
-				continue
-			}
-			
-			if readingDict {
-				dict.addWord(word)
-			} else {
-				if textToCheck.Len() > 0 {
-					textToCheck.WriteString(" ")
-				}
-				textToCheck.WriteString(word)
-			}
-		}
-		
-		// Если после обработки всех слов textToCheck пуст, читаем новую строку
-		checkText := textToCheck.String()
-		if checkText == "" {
-			fmt.Println("Введите строку для проверки:")
-			if scanner.Scan() {
-				checkText = scanner.Text()
-			}
-		}
-		
-		// Проверяем ошибки
-		errorCount := dict.errors(checkText)
-		
-		fmt.Printf("Словарь: %s", dict.String())
-		fmt.Printf("Проверяемая строка: %s\n", checkText)
-		fmt.Printf("Количество ошибок: %d\n", errorCount)
+
+	if !scanner.Scan() {
+		return
 	}
+	input := scanner.Text()
+
+	words := strings.Fields(input)
+	foundStop := false
+	var textToCheck string
+
+	for _, word := range words {
+		if word == "stop" {
+			foundStop = true
+			break
+		}
+		dict.AddWord(word)
+	}
+
+	if foundStop {
+		// Извлекаем оставшийся текст после 'stop'
+		stopIndex := strings.Index(input, "stop")
+		if stopIndex != -1 {
+			textToCheck = strings.TrimSpace(input[stopIndex+4:])
+		}
+	}
+
+	// Если текст для проверки пустой, читаем новую строку
+	if textToCheck == "" {
+		fmt.Println("Введите строку для проверки:")
+		if !scanner.Scan() {
+			return
+		}
+		textToCheck = scanner.Text()
+	}
+
+	// Проверяем ошибки
+	errorCount := dict.Errors(textToCheck)
+
+	fmt.Printf("Словарь: %s", dict.String())
+	fmt.Printf("Проверяемая строка: %s\n", textToCheck)
+	fmt.Printf("Количество ошибок: %d\n", errorCount)
 }

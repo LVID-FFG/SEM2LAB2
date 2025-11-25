@@ -96,7 +96,6 @@ func buildCodeTable(codeTable []CharStringPair, currentNode *HNode, index *int) 
 	*index++
 }
 
-// HafmanCode - структура кода Хаффмана
 type HafmanCode struct {
 	codeTable []CharStringPair
 	size      int

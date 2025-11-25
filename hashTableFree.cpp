@@ -12,42 +12,40 @@ size_t genHashFree(int size, string key){
     return result % size;
 }
 
-template<typename V>
 struct HashTableFree{
-    pair<string, V>* table;
+    pair<string, string>* table;
     size_t size;
     
 
     HashTableFree(size_t sz) : size(sz){
-        table = new pair<string, V>[sz];
+        table = new pair<string, string>[sz];
         for(int i = 0; i < size; i++) table[i].first = "_empty_";
     }
     ~HashTableFree(){
         delete[] table;
     }
 
-    // Преобразуем любой ключ в строку
-    template<typename K>
-    string keyToString(K key) {
-        if constexpr (is_same_v<K, string>) { //constexpr
-            return key;
-        } else {
-            return to_string(key);
-        }
-    }
 
-    template<typename K>
-    void insert(K key, V value){
-        string strKey = keyToString(key);
-        size_t Hash = genHashFree(size, strKey);
+    void insert(string key, string value){
+        size_t Hash = genHashFree(size, key);
+        if (table[Hash].first == key){
+            table[Hash] = {key, value};
+            cout << "Элемент добавлен: ключ='" << key << "', значение='" << value << "'" << endl;
+            return;
+        }
         if (table[Hash].first == "_empty_"){
-            table[Hash] = {strKey, value};
+            table[Hash] = {key, value};
             cout << "Элемент добавлен: ключ='" << key << "', значение='" << value << "'" << endl;
         }else{
             int i = 1;
             while(1){
+                if (table[(Hash + i)%size].first == key){
+                    table[Hash] = {key, value};
+                    cout << "Элемент добавлен: ключ='" << key << "', значение='" << value << "'" << endl;
+                    return;
+                }
                 if (table[(Hash + i)%size].first == "_empty_"){
-                    table[(Hash + i)%size] = {strKey, value};
+                    table[(Hash + i)%size] = {key, value};
                     cout << "Элемент добавлен: ключ='" << key << "', значение='" << value << "'" << endl;
                     return;
                 } 
@@ -60,17 +58,15 @@ struct HashTableFree{
         }
     }
 
-    template<typename K>
-    void remove(K key){
-        string strKey = keyToString(key);
-        size_t Hash = genHashFree(size, strKey);
-        if (table[Hash].first == strKey){
+    void remove(string key){
+        size_t Hash = genHashFree(size, key);
+        if (table[Hash].first == key){
             table[Hash].first = "_empty_";
             cout << "Элемент успешно удалён" << endl;
         }else{
             int i = 1;
             while(1){
-                if (table[(Hash + i)%size].first == strKey){
+                if (table[(Hash + i)%size].first == key){
                     table[(Hash + i)%size].first = "_empty_";
                     cout << "Элемент успешно удалён" << endl;
                     return;
@@ -84,16 +80,14 @@ struct HashTableFree{
         }
     }
 
-    template<typename K>
-    void find(K key){
-        string strKey = keyToString(key);
-        size_t Hash = genHashFree(size, strKey);
-        if (table[Hash].first == strKey){
+    void find(string key){
+        size_t Hash = genHashFree(size, key);
+        if (table[Hash].first == key){
             cout << "Data = " << table[Hash].second << endl;
         }else{
             int i = 1;
             while(1){
-                if (table[(Hash + i)%size].first == strKey){
+                if (table[(Hash + i)%size].first == key){
                     cout << "Data = " << table[(Hash + i)%size].second << endl;
                     return;
                 } 
@@ -118,8 +112,7 @@ void hashTableFree(){
         return;
     }
     
-    // ИЗМЕНЕНИЕ: используем string вместо int
-    HashTableFree<string> hashTable(tableSize);
+    HashTableFree hashTable(tableSize);
     cout << "Хеш-таблица создана с размером " << tableSize << endl;
     
     cin.ignore(); // Очищаем буфер после ввода числа
@@ -145,7 +138,7 @@ void hashTableFree(){
         }
         else if (command == "INSERT") {
             string key;
-            string value; // ИЗМЕНЕНИЕ: string вместо int
+            string value;
             if (ss >> key >> value) {
                 hashTable.insert(key, value);
             } else {

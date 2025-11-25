@@ -1,63 +1,123 @@
 #include <iostream>
-#include <algorithm>
 #include <sstream>
 
 using namespace std;
 
-struct morfTable{
-    pair<char, char>* table = new pair<char, char>[10];
-    size_t size = 0;
-    size_t cap = 10;
+struct MChain{
+    string key;
+    string data;
+    MChain* next;
+    MChain(string key, string data) : key(key), data(data), next(nullptr){}
+};
 
-    bool searchSimbolMorf(string& str1, string& str2, char symbol){
-        // Сначала проверяем, есть ли символ уже в таблице
-        for(int i = 0; i < size; i++){
-            if (table[i].first == symbol) {
-                // Если символ есть в таблице, проверяем что отображение корректно
-                char expectedChar = table[i].second;
-                for(size_t j = 0; j < str1.size(); j++) {
-                    if(str1[j] == symbol && str2[j] != expectedChar) {
-                        return false;
-                    }
-                }
-                return true;
+size_t genHashMorf(int size, string key){
+    size_t result = 1245;
+    for (size_t i = 0; i < key.size(); i++){
+        result += (i * key[i]) % size;
+    }
+    return result % size;
+}
+
+struct HashTableMChain{
+    MChain** table;
+    size_t size;
+    
+    HashTableMChain(size_t sz) : size(sz){
+        table = new MChain*[sz];
+        for (size_t i = 0; i < size; i++) {
+            table[i] = nullptr;
+        }
+    }
+    
+    ~HashTableMChain(){
+        for (size_t i = 0; i < size; i++) {
+            MChain* current = table[i];
+            while (current != nullptr) {
+                MChain* next = current->next;
+                delete current;
+                current = next;
             }
         }
-        
-        // Если символа нет в таблице, находим соответствующий символ из str2
-        char mappedChar = '\0';
-        for(size_t i = 0; i < str1.size(); i++){
-            if(str1[i] == symbol) {
-                if(mappedChar == '\0') {
-                    mappedChar = str2[i];
-                } else if(mappedChar != str2[i]) {
-                    return false;  // Один символ отображается в разные - не изоморфно
-                }
-            }
-        }
-        
-        // Проверяем, что mappedChar не используется для другого символа
-        for(int i = 0; i < size; i++){
-            if(table[i].second == mappedChar) {
-                return false;  // Два разных символа отображаются в один - не изоморфно
-            }
-        }
-        
-        // Добавляем новое отображение в таблицу
-        table[size] = {symbol, mappedChar};
-        size++;
-        if (size == cap){
-            cap *= 2;
-            pair<char, char>* newTable = new pair<char, char>[cap];
-            for(int i = 0; i < size; i++) newTable[i] = table[i];
-            delete[] table;
-            table = newTable;
-        }
-        return true;
+        delete[] table;
     }
 
-    ~morfTable() {
-        delete[] table;
+    void insert(string key, string value){
+        size_t Hash = genHashMorf(size, key);
+
+        if (table[Hash] == nullptr){
+            table[Hash] = new MChain(key, value);
+        }else{
+            MChain* address = table[Hash];
+            while (address->next != nullptr && address->key != key) 
+                address = address->next;
+            if (address->key == key) {
+                address->data = value;
+            } else {
+                address->next = new MChain(key, value);
+            }
+        }
+    }
+
+    string find(string key){
+        size_t Hash = genHashMorf(size, key);
+        MChain* address = table[Hash];
+        if (address == nullptr){
+            return "";
+        } 
+        while (address != nullptr){
+            if (address->key == key){
+                return address->data;
+            }
+            address = address->next;
+        }
+        return "";
+    }
+};
+
+struct morfTable{
+    HashTableMChain tableIn;
+    HashTableMChain tableOut;
+    morfTable() : tableIn(10), tableOut(10){}
+    
+    bool searchSimbolMorf(string& str1, string& str2, string symbol) {
+        string existingMapping = tableIn.find(symbol);
+        
+        if (!existingMapping.empty()) {
+            // Проверяем корректность существующего отображения
+            for (int i = 0; i < str1.size(); i++) {
+                if (str1[i] == symbol[0] && str2[i] != existingMapping[0]) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        // Ищем кандидата для отображения
+        char candidate = 0;
+        bool candidateFound = false;
+        
+        for (int i = 0; i < str1.size(); i++) {
+            if (str1[i] == symbol[0]) {
+                if (!candidateFound) {
+                    candidate = str2[i];
+                    candidateFound = true;
+                } else if (str2[i] != candidate) {
+                    return false;
+                }
+            }
+        }
+        
+        // Проверяем что разные символы не отображаются в 1
+        string candidateStr(1, candidate);
+        string reverseMapping = tableOut.find(candidateStr);
+        if (!reverseMapping.empty() && reverseMapping != symbol) {
+            return false;
+        }
+        
+        // Сохраняем отображения
+        tableIn.insert(symbol, candidateStr);
+        tableOut.insert(candidateStr, symbol);
+        return true;
     }
 };
 
@@ -66,13 +126,18 @@ void isMorf(string str1, string str2){
         cout << "FALSE" << endl;
         return;
     }
+    
     morfTable table;
+    
+    // Проверяем отображение из str1 в str2
     for (int i = 0; i < str1.size(); i++){
-        if (!(table.searchSimbolMorf(str1, str2, str1[i]))){
+        string symbol(1, str1[i]);
+        if (!table.searchSimbolMorf(str1, str2, symbol)){
             cout << "FALSE" << endl;
             return;
         }
     }
+    
     cout << "TRUE" << endl;
 }
 

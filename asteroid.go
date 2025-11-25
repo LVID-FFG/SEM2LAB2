@@ -8,37 +8,31 @@ import (
 	"strings"
 )
 
-// SNode - узел стека
 type SNode struct {
 	data pair
 	next *SNode
 }
 
-// Stack - структура стека
 type Stack struct {
 	head *SNode
 }
 
-// pair - замена std::pair<int, string>
 type pair struct {
 	first  int
 	second string
 }
 
-// SPUSH - добавление элемента в стек
 func SPUSH(list *Stack, data pair) {
 	newNode := &SNode{data: data, next: list.head}
 	list.head = newNode
 }
 
-// SPOP - удаление верхнего элемента стека
 func SPOP(list *Stack) {
 	if list.head == nil {
 		return
 	}
 	nextNode := list.head.next
 	list.head = nextNode
-	// В Go сборщик мусора автоматически удалит память
 }
 
 // String - реализация вывода для pair (аналог operator<<)
@@ -46,7 +40,6 @@ func (p pair) String() string {
 	return fmt.Sprintf("%d %s", p.first, p.second)
 }
 
-// SPRINT - вывод содержимого стека
 func SPRINT(list *Stack) {
 	current := list.head
 	for current != nil {

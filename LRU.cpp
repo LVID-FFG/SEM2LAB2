@@ -6,10 +6,11 @@ using namespace std;
 
 struct Node {
     string key;
+    string data;
     Node* prev;
     Node* next;
     
-    Node(string k) : key(k), prev(nullptr), next(nullptr) {}
+    Node(string k, string d) : key(k), data(d), prev(nullptr), next(nullptr) {}
 };
 
 class LRUCache {
@@ -18,7 +19,6 @@ private:
     Node* head;
     Node* tail;
 
-    // Поиск узла по ключу
     Node* findNode(string key) {
         Node* current = head->next;
         while (current != tail) {
@@ -30,13 +30,11 @@ private:
         return nullptr;
     }
 
-    // Удаление узла из списка
     void removeNode(Node* node) {
         node->prev->next = node->next;
         node->next->prev = node->prev;
     }
 
-    // Добавление узла в начало списка (после head)
     void addToFront(Node* node) {
         node->next = head->next;
         node->prev = head;
@@ -44,13 +42,11 @@ private:
         head->next = node;
     }
 
-    // Перемещение узла в начало
     void moveToFront(Node* node) {
         removeNode(node);
         addToFront(node);
     }
 
-    // Удаление LRU элемента
     void removeLRU() {
         Node* lru = tail->prev;
         removeNode(lru);
@@ -59,9 +55,8 @@ private:
 
 public:
     LRUCache(int cap) : capacity(cap) {
-        // Создаем фиктивные голову и хвост для упрощения операций
-        head = new Node("");
-        tail = new Node("");
+        head = new Node("", "");
+        tail = new Node("", "");
         head->next = tail;
         tail->prev = head;
     }
@@ -75,35 +70,30 @@ public:
         }
     }
 
-    // GET операция
-    bool get(string key) {
+    Node* get(string key) {
         Node* node = findNode(key);
         if (node != nullptr) {
             moveToFront(node);
-            return true;
+            return node;
         }
-        return false;
+        return nullptr;
     }
 
-    // SET операция
-    void set(string key) {
+    void set(string key, string data) {
         Node* node = findNode(key);
         if (node != nullptr) {
-            // Ключ уже существует - просто перемещаем в начало
+            // Ключ уже существует, перемещаем в начало
             moveToFront(node);
+            node -> data = data;
         } else {
-            // Новый ключ
             if (getSize() >= capacity) {
                 removeLRU();
             }
-            
-            // Создаем новый узел и добавляем в начало
-            Node* newNode = new Node(key);
+            Node* newNode = new Node(key, data);
             addToFront(newNode);
         }
     }
 
-    // Вспомогательная функция для получения размера
     int getSize() {
         int size = 0;
         Node* current = head->next;
@@ -118,7 +108,7 @@ public:
         cout << "Кэш: ";
         Node* current = head->next;
         while (current != tail) {
-            cout << "[\"" << current->key << "\"] ";
+            cout << "[\"" << current->key << " " << current -> data<< "\"] ";
             current = current->next;
         }
         cout << endl;
@@ -126,7 +116,7 @@ public:
 };
 
 void LRU() {
-    cout << "Режим LRU-кеша (LRUCASH)" << endl;
+    cout << "Режим LRU-кеша" << endl;
     cout << "Введите размер кеша:" << endl;
     
     int cacheSize;
@@ -140,7 +130,7 @@ void LRU() {
     LRUCache cache(cacheSize);
     cout << "LRU-кеш создан с размером " << cacheSize << endl;
     
-    cin.ignore(); // Очищаем буфер после ввода числа
+    cin.ignore();
     
     while (true) {
         cout << endl << "Доступные команды:" << endl;
@@ -163,8 +153,9 @@ void LRU() {
         }
         else if (command == "SET") {
             string key;
-            if (ss >> key) {
-                cache.set(key);
+            string data;
+            if (ss >> key && ss >> data) {
+                cache.set(key, data);
                 cout << "Элемент добавлен в кеш: ключ='" << key << "'" << endl;
                 cache.printCache();
             } else {
@@ -173,10 +164,11 @@ void LRU() {
         }
         else if (command == "GET") {
             string key;
+            string data;
             if (ss >> key) {
-                bool found = cache.get(key);
+                Node* found = cache.get(key);
                 if (found) {
-                    cout << "Элемент найден в кеше: ключ='" << key << "'" << endl;
+                    cout << "Элемент найден в кеше: ='" << found -> data << "'" << endl;
                 } else {
                     cout << "Элемент отсутствует в кеше: ключ='" << key << "'" << endl;
                 }

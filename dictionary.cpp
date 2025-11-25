@@ -27,13 +27,25 @@ struct Dictionary{
         stringstream ss(str);
         while (ss >> str){
             string str_down = str;
-            transform(str.begin(), str.end(), str_down.begin(), ::tolower);
+            transform(str.begin(), str.end(), str_down.begin(), ::tolower); //нет ударений
             if (str_down == str){
                 result++;
                 continue;
             }
 
-            bool haveWord = false;
+            bool manyUdr = false;
+            for(size_t i = 0, udr = 0 ; i < str.size(); i++){
+                    if (str[i] != str_down[i]) udr++;
+                    if (udr > 1) {
+                        manyUdr = true;
+                        break;
+                    }
+                }
+            if (manyUdr){
+                result++;
+                continue;
+            }
+            bool haveWord = false; //есть ли слово в принципе
             for(int i = 0; i < size; i++){
                 string data_down = data[i];
                 transform(data[i].begin(), data[i].end(), data_down.begin(), ::tolower);
@@ -50,6 +62,7 @@ struct Dictionary{
             }
 
             if (haveWord && !(noError)) result++;
+            
         }
         return result;
     }

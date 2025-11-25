@@ -41,12 +41,14 @@ struct HashTableChain{
 
     void insert(string key, string value){
         size_t Hash = genHash(size, key);
+
         if (table[Hash] == nullptr){
             table[Hash] = new Chain(key, value);
         }else{
             Chain* address = table[Hash];
-            while (address->next != nullptr) address = address->next;
-            address->next = new Chain(key, value);
+            while (address->next != nullptr && address->key != key) address = address->next;
+            if (address->key == key) address -> data = value;
+            else address->next = new Chain(key, value);
         }
     }
 

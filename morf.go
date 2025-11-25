@@ -4,89 +4,131 @@ import (
 	"fmt"
 )
 
-// MPair - аналог pair<char, char>
-type MPair struct {
-	first  byte
-	second byte
+type MChain struct {
+	key  string
+	data string
+	next *MChain
 }
 
-// MorfTable - структура для проверки изоморфизма
-type MorfTable struct {
-	table []MPair
+func genHashMorf(size int, key string) int {
+	result := 1245
+	for i := 0; i < len(key); i++ {
+		result += (i * int(key[i])) % size
+	}
+	return result % size
+}
+
+type HashTableMChain struct {
+	table []*MChain
 	size  int
-	cap   int
 }
 
-// NewMorfTable - конструктор таблицы
-func NewMorfTable() *MorfTable {
-	return &MorfTable{
-		table: make([]MPair, 10),
-		size:  0,
-		cap:   10,
+func NewHashTableMChain(sz int) *HashTableMChain {
+	table := make([]*MChain, sz)
+	return &HashTableMChain{
+		table: table,
+		size:  sz,
 	}
 }
 
-// SearchSimbolMorf - поиск символа в морфологической таблице
-func (m *MorfTable) SearchSimbolMorf(str1 string, str2 string, symbol byte) bool {
-	// Сначала проверяем, есть ли символ уже в таблице
-	for i := 0; i < m.size; i++ {
-		if m.table[i].first == symbol {
-			// Если символ есть в таблице, проверяем что отображение корректно
-			expectedChar := m.table[i].second
-			for j := 0; j < len(str1); j++ {
-				if str1[j] == symbol && str2[j] != expectedChar {
-					return false
-				}
-			}
-			return true
+func (h *HashTableMChain) insert(key, value string) {
+	Hash := genHashMorf(h.size, key)
+
+	if h.table[Hash] == nil {
+		h.table[Hash] = &MChain{key: key, data: value}
+	} else {
+		address := h.table[Hash]
+		for address.next != nil && address.key != key {
+			address = address.next
+		}
+		if address.key == key {
+			address.data = value
+		} else {
+			address.next = &MChain{key: key, data: value}
 		}
 	}
+}
 
-	// Если символа нет в таблице, находим соответствующий символ из str2
-	mappedChar := byte(0)
+func (h *HashTableMChain) find(key string) string {
+	Hash := genHashMorf(h.size, key)
+	address := h.table[Hash]
+	if address == nil {
+		return ""
+	}
+	for address != nil {
+		if address.key == key {
+			return address.data
+		}
+		address = address.next
+	}
+	return ""
+}
+
+type morfTable struct {
+	tableIn  *HashTableMChain
+	tableOut *HashTableMChain
+}
+
+func newMorfTable() *morfTable {
+	return &morfTable{
+		tableIn:  NewHashTableMChain(10),
+		tableOut: NewHashTableMChain(10),
+	}
+}
+
+func (m *morfTable) searchSimbolMorf(str1, str2 string, symbol string) bool {
+	existingMapping := m.tableIn.find(symbol)
+
+	if existingMapping != "" {
+		for i := 0; i < len(str1); i++ {
+			if str1[i] == symbol[0] && str2[i] != existingMapping[0] {
+				return false
+			}
+		}
+		return true
+	}
+
+	candidate := byte(0)
+	candidateFound := false
+
 	for i := 0; i < len(str1); i++ {
-		if str1[i] == symbol {
-			if mappedChar == 0 {
-				mappedChar = str2[i]
-			} else if mappedChar != str2[i] {
-				return false // Один символ отображается в разные - не изоморфно
+		if str1[i] == symbol[0] {
+			if !candidateFound {
+				candidate = str2[i]
+				candidateFound = true
+			} else if str2[i] != candidate {
+				return false
 			}
 		}
 	}
 
-	// Проверяем, что mappedChar не используется для другого символа
-	for i := 0; i < m.size; i++ {
-		if m.table[i].second == mappedChar {
-			return false // Два разных символа отображаются в один - не изоморфно
-		}
+	candidateStr := string(candidate)
+	reverseMapping := m.tableOut.find(candidateStr)
+	if reverseMapping != "" && reverseMapping != symbol {
+		return false
 	}
 
-	// Добавляем новое отображение в таблицу
-	if m.size == len(m.table) {
-		// Увеличиваем емкость в 2 раза
-		m.cap *= 2
-		newTable := make([]MPair, m.cap)
-		copy(newTable, m.table)
-		m.table = newTable
-	}
-	m.table[m.size] = MPair{symbol, mappedChar}
-	m.size++
+	m.tableIn.insert(symbol, candidateStr)
+	m.tableOut.insert(candidateStr, symbol)
 	return true
 }
 
-// IsMorf - проверка изоморфизма строк
-func IsMorf(str1 string, str2 string) {
+func isMorf(str1, str2 string) {
 	if len(str1) != len(str2) {
 		fmt.Println("FALSE")
 		return
 	}
-	table := NewMorfTable()
+
+	table := newMorfTable()
+
 	for i := 0; i < len(str1); i++ {
-		if !table.SearchSimbolMorf(str1, str2, str1[i]) {
+		symbol := string(str1[i])
+		if !table.searchSimbolMorf(str1, str2, symbol) {
 			fmt.Println("FALSE")
 			return
 		}
 	}
+
 	fmt.Println("TRUE")
 }
 
@@ -95,5 +137,5 @@ func morf() {
 	fmt.Println("Введите строки")
 	fmt.Scan(&str1)
 	fmt.Scan(&str2)
-	IsMorf(str1, str2)
+	isMorf(str1, str2)
 }

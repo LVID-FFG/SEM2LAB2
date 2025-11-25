@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-// genHashFree - генерация хеша (линейное пробирование)
 func genHashFree(size int, key string) int {
 	result := 1245
 	for i := 0; i < len(key); i++ {
@@ -16,48 +15,49 @@ func genHashFree(size int, key string) int {
 	return result % size
 }
 
-// HashTableFree - хеш-таблица с линейным пробированием
 type HashTableFree struct {
-	table []struct {
-		first  string
-		second string
-	}
-	size int
+	table []pairF
+	size  int
 }
 
-// NewHashTableFree - конструктор хеш-таблицы
-func NewHashTableFree(sz int) *HashTableFree {
-	table := make([]struct {
-		first  string
-		second string
-	}, sz)
+type pairF struct {
+	first  string
+	second string
+}
 
-	// Инициализируем все ячейки как пустые
+func NewHashTableFree(sz int) *HashTableFree {
+	table := make([]pairF, sz)
 	for i := 0; i < sz; i++ {
 		table[i].first = "_empty_"
 	}
-
 	return &HashTableFree{
 		table: table,
 		size:  sz,
 	}
 }
 
-// Insert - вставка элемента
-func (h *HashTableFree) Insert(key interface{}, value string) {
-	strKey := keyToString(key)
-	hash := genHashFree(h.size, strKey)
-
-	if h.table[hash].first == "_empty_" {
-		h.table[hash].first = strKey
-		h.table[hash].second = value
+func (h *HashTableFree) insert(key, value string) {
+	Hash := genHashFree(h.size, key)
+	if h.table[Hash].first == key {
+		h.table[Hash] = pairF{key, value}
+		fmt.Printf("Элемент добавлен: ключ='%s', значение='%s'\n", key, value)
+		return
+	}
+	if h.table[Hash].first == "_empty_" {
+		h.table[Hash] = pairF{key, value}
+		fmt.Printf("Элемент добавлен: ключ='%s', значение='%s'\n", key, value)
 	} else {
 		i := 1
 		for {
-			index := (hash + i) % h.size
+			index := (Hash + i) % h.size
+			if h.table[index].first == key {
+				h.table[Hash] = pairF{key, value}
+				fmt.Printf("Элемент добавлен: ключ='%s', значение='%s'\n", key, value)
+				return
+			}
 			if h.table[index].first == "_empty_" {
-				h.table[index].first = strKey
-				h.table[index].second = value
+				h.table[index] = pairF{key, value}
+				fmt.Printf("Элемент добавлен: ключ='%s', значение='%s'\n", key, value)
 				return
 			}
 			i++
@@ -69,19 +69,18 @@ func (h *HashTableFree) Insert(key interface{}, value string) {
 	}
 }
 
-// Remove - удаление элемента
-func (h *HashTableFree) Remove(key interface{}) {
-	strKey := keyToString(key)
-	hash := genHashFree(h.size, strKey)
-
-	if h.table[hash].first == strKey {
-		h.table[hash].first = "_empty_"
+func (h *HashTableFree) remove(key string) {
+	Hash := genHashFree(h.size, key)
+	if h.table[Hash].first == key {
+		h.table[Hash].first = "_empty_"
+		fmt.Println("Элемент успешно удалён")
 	} else {
 		i := 1
 		for {
-			index := (hash + i) % h.size
-			if h.table[index].first == strKey {
+			index := (Hash + i) % h.size
+			if h.table[index].first == key {
 				h.table[index].first = "_empty_"
+				fmt.Println("Элемент успешно удалён")
 				return
 			}
 			i++
@@ -93,18 +92,15 @@ func (h *HashTableFree) Remove(key interface{}) {
 	}
 }
 
-// Find - поиск элемента
-func (h *HashTableFree) Find(key interface{}) {
-	strKey := keyToString(key)
-	hash := genHashFree(h.size, strKey)
-
-	if h.table[hash].first == strKey {
-		fmt.Printf("Data = %s\n", h.table[hash].second)
+func (h *HashTableFree) find(key string) {
+	Hash := genHashFree(h.size, key)
+	if h.table[Hash].first == key {
+		fmt.Printf("Data = %s\n", h.table[Hash].second)
 	} else {
 		i := 1
 		for {
-			index := (hash + i) % h.size
-			if h.table[index].first == strKey {
+			index := (Hash + i) % h.size
+			if h.table[index].first == key {
 				fmt.Printf("Data = %s\n", h.table[index].second)
 				return
 			}
@@ -121,11 +117,7 @@ func hashTableFree() {
 	fmt.Println("Введите размер хеш-таблицы:")
 
 	var tableSize int
-	_, err := fmt.Scan(&tableSize)
-	if err != nil {
-		fmt.Println("Ошибка: неверный формат размера таблицы")
-		return
-	}
+	fmt.Scan(&tableSize)
 
 	if tableSize <= 0 {
 		fmt.Println("Ошибка: размер таблицы должен быть положительным числом")
@@ -136,7 +128,6 @@ func hashTableFree() {
 	fmt.Printf("Хеш-таблица создана с размером %d\n", tableSize)
 
 	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan() // Очищаем буфер после ввода числа
 
 	for {
 		fmt.Println("\nДоступные команды:")
@@ -146,13 +137,10 @@ func hashTableFree() {
 		fmt.Println("EXIT - выход из программы")
 		fmt.Println("Введите команду:")
 
-		if !scanner.Scan() {
-			break
-		}
-
+		scanner.Scan()
 		input := scanner.Text()
-		parts := strings.Fields(input)
 
+		parts := strings.Fields(input)
 		if len(parts) == 0 {
 			continue
 		}
@@ -166,23 +154,22 @@ func hashTableFree() {
 			if len(parts) >= 3 {
 				key := parts[1]
 				value := strings.Join(parts[2:], " ")
-				hashTable.Insert(key, value)
-				fmt.Printf("Элемент добавлен: ключ='%s', значение='%s'\n", key, value)
+				hashTable.insert(key, value)
 			} else {
 				fmt.Println("Ошибка: неверный формат команды. Используйте: INSERT <ключ> <значение>")
 			}
 		} else if command == "REMOVE" {
 			if len(parts) >= 2 {
 				key := parts[1]
-				hashTable.Remove(key)
-				fmt.Printf("Попытка удаления элемента с ключом='%s'\n", key)
+				fmt.Printf("Попытка удаления элемента с ключом='%s'...\n", key)
+				hashTable.remove(key)
 			} else {
 				fmt.Println("Ошибка: неверный формат команды. Используйте: REMOVE <ключ>")
 			}
 		} else if command == "FIND" {
 			if len(parts) >= 2 {
 				key := parts[1]
-				hashTable.Find(key)
+				hashTable.find(key)
 			} else {
 				fmt.Println("Ошибка: неверный формат команды. Используйте: FIND <ключ>")
 			}

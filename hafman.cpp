@@ -36,7 +36,7 @@ ostream& operator<<(ostream& ss, pair<double, char> dc){
 }
 
 // Функция для создания кодов
-void createCode(HNode* node, string currentCode = ""){
+void createCode(HNode* node, string currentCode = "" ){
     if (!node) return;
     
     node->code = currentCode;
@@ -100,7 +100,7 @@ struct HafmanCode{
 
         codeTable = new pair<char, string>[unique.size()];
         size = unique.size();
-        int index = 0; // Локальная переменная вместо статической
+        int index = 0;
         buildCodeTable(codeTable, head, index);
         
         string result = "";
